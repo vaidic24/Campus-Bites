@@ -11,7 +11,9 @@ const Orders = () => {
 
   const getOrders = async () => {
     try {
-      const { data } = await axios.get(`${process.env.REACT_APP_API}/api/auth/orders`);
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/auth/orders`
+      );
       setOrders(data);
     } catch (error) {
       // console.log(error);
@@ -19,10 +21,12 @@ const Orders = () => {
   };
 
   useEffect(() => {
-    if (auth?.token) getOrders();
+    if (auth?.token) {
+      getOrders();
+    }
   }, [auth?.token]);
   return (
-    <Layout title={"Your Orders"}>
+    <Layout title={"Orders"}>
       <div className="container-flui p-3 m-3 dashboard">
         <div className="row">
           <div className="col-md-3">
@@ -51,26 +55,27 @@ const Orders = () => {
                         <td>{o?.buyer?.name}</td>
                         <td>{moment(o?.createAt).fromNow()}</td>
                         <td>{o?.payment.success ? "Success" : "Failed"}</td>
-                        <td>{o?.products?.length}</td>
+                        <td>{o.products?.length}</td>
                       </tr>
                     </tbody>
                   </table>
                   <div className="container">
-                    {o?.products?.map((p, i) => (
-                      <div className="row mb-2 p-3 card flex-row" key={p._id}>
+                    {o.products?.map((p) => (
+                      <div
+                        className="row mb-2 p-3 card flex-row"
+                        key={p.product}
+                      >
                         <div className="col-md-4">
                           <img
-                            src={`${process.env.REACT_APP_API}/api/product/product-photo/${p._id}`}
+                            src={`${process.env.REACT_APP_API}/api/product/product-photo/${p.product}`}
                             className="card-img-top"
                             alt={p.name}
                             width="100px"
                             height={"100px"}
                           />
                         </div>
-                        <div className="col-md-8">
-                          <p>{p.name}</p>
-                          <p>{p.description.substring(0, 30)}</p>
-                          <p>Price : {p.price}</p>
+                        <div className="col-md-6">
+                          <p>Count: {p.count}</p>
                         </div>
                       </div>
                     ))}

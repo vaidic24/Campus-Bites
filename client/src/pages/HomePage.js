@@ -8,11 +8,12 @@ import toast from "react-hot-toast";
 import Layout from "../components/Layout/Layout";
 import { AiOutlineReload } from "react-icons/ai";
 import "../styles/Homepage.css";
-
+import { useAuth } from "../context/auth";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [cart, setCart] = useCart();
+  const [auth, setAuth] = useAuth();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [checked, setChecked] = useState([]);
@@ -24,7 +25,9 @@ const HomePage = () => {
   //get all category
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get(`${process.env.REACT_APP_API}/api/category/get-category`);
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/category/get-category`
+      );
       if (data?.success) {
         setCategories(data?.category);
       }
@@ -42,7 +45,9 @@ const HomePage = () => {
   const getAllProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${process.env.REACT_APP_API}/api/product/product-list/${page}`);
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/product/product-list/${page}`
+      );
       setLoading(false);
       setProducts(data.products);
     } catch (error) {
@@ -54,7 +59,9 @@ const HomePage = () => {
   //getTOtal COunt
   const getTotal = async () => {
     try {
-      const { data } = await axios.get(`${process.env.REACT_APP_API}/api/product/product-count`);
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/product/product-count`
+      );
       setTotal(data?.total);
     } catch (error) {
       // console.log(error);
@@ -70,7 +77,9 @@ const HomePage = () => {
   const loadMore = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${process.env.REACT_APP_API}/api/product/product-list/${page}`);
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/product/product-list/${page}`
+      );
       setLoading(false);
       setProducts([...products, ...data?.products]);
     } catch (error) {
@@ -100,19 +109,92 @@ const HomePage = () => {
   // get filterd product
   const filterProduct = async () => {
     try {
-      const { data } = await axios.post(`${process.env.REACT_APP_API}/api/product/product-filters`, {
-        checked,
-        radio,
-      });
+      const { data } = await axios.post(
+        `${process.env.REACT_APP_API}/api/product/product-filters`,
+        {
+          checked,
+          radio,
+        }
+      );
       setProducts(data?.products);
     } catch (error) {
       // console.log(error);
     }
   };
 
+  // get cart
+  async function fetchProducts(cartItems) {
+    const cart = await Promise.all(
+      cartItems.map(async (p) => {
+        try {
+          const res = await axios.get(
+            `${process.env.REACT_APP_API}/api/product/get-productbyid/${p.product}`
+          );
+          const cartItem = { product: res.data.product, count: p.count };
+          return cartItem;
+        } catch (error) {
+          console.error(`Error fetching product with ID ${p}:`, error);
+          return null; // or some default value indicating an error
+        }
+      })
+    );
+    // 'cart' now contains an array of product data obtained from the API for each cart item
+    return cart;
+  }
+  const getCart = async () => {
+    const cartItems = JSON.parse(localStorage.getItem("cartItemsId"));
+    // console.log(cartItems);
+    const cart_ = await fetchProducts(cartItems);
+    // console.log(cart_);
+    setCart([...cart_, ...cart]);
+    localStorage.setItem("cart", JSON.stringify([...cart_, ...cart]));
+  };
+  useEffect(() => {
+    if (JSON.parse(localStorage.getItem("isCartLoaded")) === 0) {
+      getCart();
+      localStorage.setItem("isCartLoaded", JSON.stringify(1));
+    }
+  }, [auth?.token]);
+
+  // add to cart
+  const addCartItem = async (p) => {
+    try {
+      if (auth?.token) {
+        const index = cart.findIndex((c) => {
+          return JSON.stringify(c.product._id) === JSON.stringify(p._id);
+        });
+        // console.log(result);
+        if (index >= 0) {
+          const newCart = cart;
+          newCart[index].count += 1;
+          console.log(newCart);
+          setCart([...newCart]);
+          localStorage.setItem("cart", JSON.stringify([...newCart]));
+        } else {
+          setCart([...cart, { product: p, count: 1 }]);
+          localStorage.setItem(
+            "cart",
+            JSON.stringify([...cart, { product: p, count: 1 }])
+          );
+          let cartSize = JSON.parse(localStorage.getItem("cartSize"));
+          localStorage.setItem("cartSize", JSON.stringify(cartSize + 1));
+        }
+        // setCart([...cart, p]);
+        await axios.put(`${process.env.REACT_APP_API}/api/auth/addtocart`, {
+          email: auth.user.email,
+          product: p,
+        });
+        toast.success("Item Added to cart");
+      } else {
+        toast.success("Login to add to cart");
+        navigate("/login");
+      }
+    } catch (error) {}
+  };
+
   return (
-    <Layout title={'Ecommerce App'}>
-        {/* banner image */}
+    <Layout title={"Campus Bites"}>
+      {/* banner image */}
       <img
         src="/images/banner.png"
         className="banner-img"
@@ -126,6 +208,7 @@ const HomePage = () => {
           <div className="d-flex flex-column">
             {categories?.map((c) => (
               <Checkbox
+                className="checkbox"
                 key={c._id}
                 onChange={(e) => handleFilter(e.target.checked, c._id)}
               >
@@ -169,7 +252,7 @@ const HomePage = () => {
                     <h5 className="card-title card-price">
                       {p.price.toLocaleString("en-US", {
                         style: "currency",
-                        currency: "USD",
+                        currency: "INR",
                       })}
                     </h5>
                   </div>
@@ -186,13 +269,7 @@ const HomePage = () => {
                     <button
                       className="btn btn-dark ms-1"
                       onClick={() => {
-                        setCart([...cart, p]);
-                        localStorage.setItem(
-                          "cart",
-                          JSON.stringify([...cart, p])
-                        );
-                        toast.success("Item Added to cart");
-                        // console.log(cart);
+                        addCartItem(p);
                       }}
                     >
                       ADD TO CART
@@ -225,7 +302,7 @@ const HomePage = () => {
         </div>
       </div>
     </Layout>
-  )
-}
+  );
+};
 
-export default HomePage
+export default HomePage;

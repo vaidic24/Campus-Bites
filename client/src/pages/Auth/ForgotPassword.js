@@ -3,6 +3,7 @@ import Layout from "../../components/Layout/Layout";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import "./AuthStyles.css";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ const ForgotPassword = () => {
         {
           email,
           newPassword,
-          answer
+          answer,
         }
       );
       // console.log(res);
@@ -41,7 +42,7 @@ const ForgotPassword = () => {
       <div className="form-container">
         <h1>Reset Password</h1>
         <form onSubmit={handleSubmit}>
-        <div className="mb-3">
+          <div className="mb-3">
             <input
               type="email"
               value={email}
@@ -75,12 +76,12 @@ const ForgotPassword = () => {
             />
           </div>
           <button type="submit" className="btn btn-primary">
-            RESET
+            Reset Password
           </button>
         </form>
       </div>
     </Layout>
   );
-}
+};
 
-export default ForgotPassword
+export default ForgotPassword;

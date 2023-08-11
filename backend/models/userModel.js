@@ -25,13 +25,24 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
     answer: {
-      type: String, 
+      type: String,
       required: true,
     },
     role: {
       type: Number,
       default: 0,
     },
+    cart: [
+      {
+        product: {
+          type: mongoose.ObjectId,
+          ref: "Products",
+        },
+        count: {
+          type: Number,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );

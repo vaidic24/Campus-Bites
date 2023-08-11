@@ -80,3 +80,22 @@
     font-size: 20px !important;
   }
   
+  /* ==================
+  search // home page class is also used in search
+  ============== */
+
+  .search {
+    margin-left: 5vw;
+    align-items: center;
+  }
+
+  .checkbox {
+    margin-left: 0px !important;
+    border-color: black;
+}
+
+
+/* ==============  PRODUCT IN ADMIN ROUTE   ============ */
+.product-card {
+  text-decoration: none;
+}

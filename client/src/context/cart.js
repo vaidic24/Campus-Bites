@@ -1,4 +1,5 @@
 import { useState, useContext, createContext, useEffect } from "react";
+import axios from "axios";
 
 const CartContext = createContext();
 const CartProvider = ({ children }) => {
@@ -7,7 +8,7 @@ const CartProvider = ({ children }) => {
   useEffect(() => {
     let existingCartItem = localStorage.getItem("cart");
     if (existingCartItem) setCart(JSON.parse(existingCartItem));
-  }, []);
+  }, [cart]);
 
   return (
     <CartContext.Provider value={[cart, setCart]}>

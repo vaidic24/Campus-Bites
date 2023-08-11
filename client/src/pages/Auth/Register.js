@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import Layout from "../../components/Layout/Layout";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 import axios from "axios";
-import {useNavigate} from 'react-router-dom';
-// import "../../styles/AuthStyles.css"
+import { useNavigate } from "react-router-dom";
+import "./AuthStyles.css";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -17,7 +17,8 @@ const Register = () => {
   // form function...
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try { // check for hiding this path...
+    try {
+      // check for hiding this path...
       const res = await axios.post(
         `${process.env.REACT_APP_API}/api/auth/register`,
         {
@@ -29,10 +30,10 @@ const Register = () => {
           answer,
         }
       );
-      if(res && res.data.success){
+      if (res && res.data.success) {
         toast.success(res.data.message);
-        navigate('/login');
-      }else{
+        navigate("/login");
+      } else {
         toast.error(res.data.message);
       }
     } catch (error) {
@@ -42,9 +43,9 @@ const Register = () => {
   };
 
   return (
-    <Layout title="Register">
+    <Layout title="Sign Up">
       <div className="form-container">
-        <h1>Register Form</h1>
+        <h1>Create Account</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <input
@@ -113,7 +114,7 @@ const Register = () => {
             />
           </div>
           <button type="submit" className="btn btn-primary">
-            REGISTER
+            Sign Up
           </button>
         </form>
       </div>

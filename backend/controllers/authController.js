@@ -1,11 +1,13 @@
 import userModel from "../models/userModel.js";
-import orderModel from "../models/orderModel.js"; 
+import orderModel from "../models/orderModel.js";
 import { hashPassword, comparePassword } from "../helpers/authHelper.js";
 import JWT from "jsonwebtoken";
 
+//register
 const registerController = async (req, res) => {
   try {
     const { name, email, password, phone, address, answer } = req.body;
+    const cart = [];
     // validations...
     if (!name) {
       return res.send({ message: "Name is required." });
@@ -44,6 +46,7 @@ const registerController = async (req, res) => {
       address,
       password: hashedPassword,
       answer,
+      cart,
     }).save();
 
     res.status(201).send({
@@ -100,6 +103,7 @@ const loginController = async (req, res) => {
         phone: user.phone,
         address: user.address,
         role: user.role,
+        cart: user.cart,
       },
       token,
     });
@@ -191,6 +195,94 @@ const updateProfileController = async (req, res) => {
   }
 };
 
+// add to cart
+const addToCartController = async (req, res) => {
+  try {
+    const { email, product } = req.body;
+    const response = await userModel.findOne({ email });
+    const cart = response.cart;
+    const index = cart.findIndex((c) => {
+      console.log(JSON.stringify(c.product._id) );
+      return JSON.stringify(c.product._id) === JSON.stringify(product._id);
+    });
+    // console.log(index);
+    if(index>=0){
+      cart[index].count++;
+    }
+    else{
+      cart.push({product: product, count : 1});
+    }
+    // cart.push(product);
+    await userModel.findByIdAndUpdate(response._id, { cart: cart });
+    res.status(200).json({
+      success: true,
+      message: "Item added to cart",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error while adding item to cart",
+      error,
+    });
+  }
+};
+
+// remove from cart
+const removeFromCartController = async (req, res) => {
+  try {
+    const { email, productId } = req.body;
+    const response = await userModel.findOne({ email });
+    const cart = response.cart;
+    // remove item from cart...
+    const updatedCart = [];
+    cart.forEach((c) => {
+      if (JSON.stringify(c.product._id) == JSON.stringify(productId)) {
+        if(c.count>1){
+          c.count--;
+          updatedCart.push(c);
+        }
+      } else {
+        updatedCart.push(c);
+      }
+    });
+    const updateRes = await userModel.findByIdAndUpdate(response._id, {
+      cart: updatedCart,
+    });
+    // console.log(updateRes.cart);
+    res.status(200).json({
+      success: true,
+      message: "Item removed from cart",
+      updatedCart,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error while removing item from cart",
+      error,
+    });
+  }
+};
+
+// empty the cart
+const deleteCartController = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const response = await userModel.findOne({ email });
+    const updatedCart = [];
+    await userModel.findByIdAndUpdate(response._id, { cart: updatedCart });
+    res.status(200).json({
+      success: true,
+      message: "Item removed from cart",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error while removing item from cart",
+      error,
+    });
+  }
+};
+
 //orders getOne
 const getOrdersController = async (req, res) => {
   try {
@@ -254,7 +346,10 @@ export {
   testController,
   forogotPasswordController,
   updateProfileController,
+  addToCartController,
+  removeFromCartController,
+  deleteCartController,
   getAllOrdersController,
   getOrdersController,
-  orderStatusController
+  orderStatusController,
 };

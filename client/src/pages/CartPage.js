@@ -4,7 +4,6 @@ import { useCart } from "../context/cart";
 import { useAuth } from "../context/auth";
 import { useNavigate } from "react-router-dom";
 import DropIn from "braintree-web-drop-in-react";
-import { AiFillWarning } from "react-icons/ai";
 import axios from "axios";
 import toast from "react-hot-toast";
 import "../styles/CartStyles.css";
@@ -22,33 +21,110 @@ const CartPage = () => {
     try {
       let total = 0;
       cart?.map((item) => {
-        total = total + item.price;
+        total = total + item.product.price*item.count;
       });
       return total.toLocaleString("en-US", {
         style: "currency",
-        currency: "USD",
+        currency: "INR",
       });
     } catch (error) {
       // console.log(error);
     }
   };
   //detele item
-  const removeCartItem = (pid) => {
+  const removeCartItem = async (pid) => {
     try {
-      let myCart = [...cart];
-      let index = myCart.findIndex((item) => item._id === pid); 
-      myCart.splice(index, 1);
-      setCart(myCart);
-      localStorage.setItem("cart", JSON.stringify(myCart));
+      const res = await axios.put(
+        `${process.env.REACT_APP_API}/api/auth/editcart`,
+        {
+          email: auth.user.email,
+          productId: pid,
+        }
+      );
+      if (res.data.success) {
+        const myCart = cart.reduce(
+          (acc, p) => {
+            if (JSON.stringify(p.product._id) === JSON.stringify(pid)) {
+              if (p.count > 1) {
+                p.count-=1;
+                acc.cart.push(p);
+              }
+            } else {
+              acc.cart.push(p);
+            }
+            return acc;
+          },
+          { cart: [] }
+        );
+        const myCart_ = myCart.cart;
+        // console.log(myCart_);
+        setCart(myCart_);
+        localStorage.setItem("cart", JSON.stringify([...myCart_]));
+        // changing size of cart
+        localStorage.setItem("cartSize", JSON.stringify(myCart_?.length));
+        window.location.reload(true);
+      }
     } catch (error) {
       // console.log(error);
     }
   };
 
+  //add cart item...
+  const addCartItem = async (p) => {
+    try {
+      if (auth?.token) {
+        const index = cart.findIndex((c) => {
+          return JSON.stringify(c.product._id) === JSON.stringify(p._id);
+        });
+        // console.log(result);
+        if(index>=0){
+          const newCart = cart;
+          newCart[index].count+=1;
+          console.log(newCart);
+          setCart([...newCart]);
+          localStorage.setItem(
+            "cart",
+            JSON.stringify([...newCart])
+          );
+        }
+        else{
+          setCart([...cart, {product: p, count : 1}]);
+          localStorage.setItem(
+            "cart",
+            JSON.stringify([...cart, {product: p, count : 1}])
+          );
+          let cartSize = JSON.parse(
+            localStorage.getItem("cartSize")
+          );
+          localStorage.setItem(
+            "cartSize",
+            JSON.stringify(cartSize + 1)
+          );
+        }
+        // setCart([...cart, p]);
+        await axios.put(
+          `${process.env.REACT_APP_API}/api/auth/addtocart`,
+          {
+            email: auth.user.email,
+            product: p,
+          }
+        );
+        toast.success("Item Added to cart");
+      } else {
+        toast.success("Login to add to cart");
+        navigate("/login");
+      }
+    } catch (error) {
+      // console.log(error);
+    }
+  }
+
   //get payment gateway token
   const getToken = async () => {
     try {
-      const { data } = await axios.get(`${process.env.REACT_APP_API}/api/product/braintree/token`);
+      const { data } = await axios.get(
+        `${process.env.REACT_APP_API}/api/product/braintree/token`
+      );
       setClientToken(data?.clientToken);
     } catch (error) {
       // console.log(error);
@@ -63,13 +139,20 @@ const CartPage = () => {
     try {
       setLoading(true);
       const { nonce } = await instance.requestPaymentMethod();
-      const { data } = await axios.post(`${process.env.REACT_APP_API}/api/product/braintree/payment`, {
-        nonce,
-        cart,
-      });
+      const { data } = await axios.post(
+        `${process.env.REACT_APP_API}/api/product/braintree/payment`,
+        {
+          nonce,
+          cart,
+        }
+      );
       setLoading(false);
       localStorage.removeItem("cart");
       setCart([]);
+      await axios.put(`${process.env.REACT_APP_API}/api/auth/deletecart`, {
+        email: auth.user.email,
+      });
+      localStorage.setItem("cartSize", JSON.stringify(0));
       // console.log(auth);
       // if(auth?.user?.role===0)  // to check as orders can't be placed from admin accounts...
       navigate("/dashboard/user/orders");
@@ -81,7 +164,6 @@ const CartPage = () => {
   };
   return (
     <Layout title={"Cart"}>
-
       <div className=" cart-page">
         <div className="row">
           <div className="col-md-12">
@@ -95,9 +177,9 @@ const CartPage = () => {
                       auth?.token ? "" : "please login to checkout !"
                     }`
                   : " Your Cart Is Empty"} */}
-                {
-                    auth?.token ? `You have ${cart.length} items in your cart.` : ""
-                }
+                {auth?.token
+                  ? `You have ${cart.length} items in your cart.`
+                  : "please login to checkout !"}
               </p>
             </h1>
           </div>
@@ -105,28 +187,40 @@ const CartPage = () => {
         <div className="container ">
           <div className="row ">
             <div className="col-md-7  p-0 m-0">
+              {console.log(cart)}
               {cart?.map((p) => (
-                <div className="row card flex-row" key={p._id}>
+                <div className="row card flex-row" key={p.product._id}>
                   <div className="col-md-4">
                     <img
-                      src={`${process.env.REACT_APP_API}/api/product/product-photo/${p._id}`}
+                      src={`${process.env.REACT_APP_API}/api/product/product-photo/${p.product._id}`}
                       className="card-img-top"
-                      alt={p.name}
+                      alt={p.product.name}
                       width="100%"
                       height={"130px"}
                     />
                   </div>
                   <div className="col-md-4">
-                    <p>{p.name}</p>
-                    <p>{p.description.substring(0, 30)}</p>
-                    <p>Price : {p.price}</p>
+                    <p>{p.product.name}</p>
+                    <p>{p.product.description.substring(0, 30)}</p>
+                    <p>Price : {p.product.price}</p>
                   </div>
                   <div className="col-md-4 cart-remove-btn">
                     <button
                       className="btn btn-danger"
-                      onClick={() => removeCartItem(p._id)}
+                      onClick={() => removeCartItem(p.product._id)}
                     >
                       Remove
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                    >
+                      {p.count}
+                    </button>
+                    <button
+                      className="btn btn-success"
+                      onClick={() => addCartItem(p.product)}
+                    >
+                      Add
                     </button>
                   </div>
                 </div>
