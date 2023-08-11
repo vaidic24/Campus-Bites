@@ -1,1 +1,1 @@
-# Canteen Ecommerce WEbsite
+# Canteen Ecommerce Website
