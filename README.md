@@ -1,1 +1,1 @@
-# Canteen Management Ecommerce Website
+# Canteen Management E-Commerce Website
